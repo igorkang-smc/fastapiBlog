@@ -115,3 +115,13 @@ async def test_user2(db: Database) -> UserInDB:
         return existing_user
 
     return await user_repo.register_new_user(new_user=new_user)
+
+
+@pytest.fixture
+async def test_cleaning(db: Database, test_user: UserInDB) -> CleaningInDB:
+    cleaning_repo = CleaningsRepository(db)
+    new_cleaning = CleaningCreate(
+        name="fake cleaning name", description="fake cleaning description", price=9.99, cleaning_type="spot_clean"
+    )
+
+    return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning, requesting_user=test_user)
