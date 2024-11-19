@@ -2,9 +2,11 @@ import pathlib
 import sys
 import os
 
+
 import alembic
 from sqlalchemy import engine_from_config, create_engine, pool
 from psycopg2 import DatabaseError
+
 
 from logging.config import fileConfig
 import logging
@@ -12,7 +14,9 @@ import logging
 # we're appending the app directory to our path here so that we can import config easily
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[3]))
 
+
 from app.core.config import DATABASE_URL, POSTGRES_DB  # noqa
+
 
 # Alembic Config object, which provides access to values within the .ini file
 config = alembic.context.config
@@ -26,6 +30,7 @@ def run_migrations_online() -> None:
     """
     Run migrations in 'online' mode
     """
+
     DB_URL = f"{DATABASE_URL}_test" if os.environ.get("TESTING") else str(DATABASE_URL)
 
     # handle testing config for migrations
@@ -42,16 +47,11 @@ def run_migrations_online() -> None:
 
     if connectable is None:
         connectable = engine_from_config(
-            config.get_section(config.config_ini_section),
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
+            config.get_section(config.config_ini_section), prefix="sqlalchemy.", poolclass=pool.NullPool,
         )
 
     with connectable.connect() as connection:
-        alembic.context.configure(
-            connection=connection,
-            target_metadata=None
-        )
+        alembic.context.configure(connection=connection, target_metadata=None)
 
         with alembic.context.begin_transaction():
             alembic.context.run_migrations()
@@ -61,6 +61,7 @@ def run_migrations_offline() -> None:
     """
     Run migrations in 'offline' mode.
     """
+
     if os.environ.get("TESTING"):
         raise DatabaseError("Running testing migrations offline currently not permitted.")
 
@@ -76,4 +77,3 @@ if alembic.context.is_offline_mode():
 else:
     logger.info("Running migrations online")
     run_migrations_online()
-

@@ -14,6 +14,7 @@ class JWTMeta(CoreModel):
 
 class JWTCreds(CoreModel):
     """How we'll identify users"""
+
     sub: EmailStr
     username: str
 
@@ -22,6 +23,7 @@ class JWTPayload(JWTMeta, JWTCreds):
     """
     JWT Payload right before it's encoded - combine meta and username
     """
+
     pass
 
 

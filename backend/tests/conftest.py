@@ -10,6 +10,7 @@ from databases import Database
 
 import alembic
 from alembic.config import Config
+
 from app.models.cleaning import CleaningCreate, CleaningInDB
 from app.db.repositories.cleanings import CleaningsRepository
 
@@ -46,38 +47,29 @@ def db(app: FastAPI) -> Database:
     return app.state._db
 
 
-# Make requests in our tests
-@pytest.fixture
-async def client(app: FastAPI) -> AsyncClient:
-    async with LifespanManager(app):
-        async with AsyncClient(
-                app=app,
-                base_url="http://testserver",
-                headers={"Content-Type": "application/json"}
-        ) as client:
-            yield client
+# @pytest.fixture
+# async def test_cleaning(db: Database) -> CleaningInDB:
+#     cleaning_repo = CleaningsRepository(db)
+#     new_cleaning = CleaningCreate(
+#         name="fake cleaning name", description="fake cleaning description", price=9.99, cleaning_type="spot_clean",
+#     )
+
+#     return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning)
 
 
 @pytest.fixture
-async def test_cleaning(db: Database) -> CleaningInDB:
+async def test_cleaning(db: Database, test_user: UserInDB) -> CleaningInDB:
     cleaning_repo = CleaningsRepository(db)
     new_cleaning = CleaningCreate(
-        name="fake cleaning name",
-        description="fake cleaning description",
-        price=9.99,
-        cleaning_type="spot_clean",
+        name="fake cleaning name", description="fake cleaning description", price=9.99, cleaning_type="spot_clean"
     )
 
-    return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning)
+    return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning, requesting_user=test_user)
 
 
 @pytest.fixture
 async def test_user(db: Database) -> UserInDB:
-    new_user = UserCreate(
-        email="lebron@james.io",
-        username="lebronjames",
-        password="heatcavslakers",
-    )
+    new_user = UserCreate(email="lebron@james.io", username="lebronjames", password="heatcavslakers")
 
     user_repo = UsersRepository(db)
 
@@ -86,6 +78,29 @@ async def test_user(db: Database) -> UserInDB:
         return existing_user
 
     return await user_repo.register_new_user(new_user=new_user)
+
+
+@pytest.fixture
+async def test_user2(db: Database) -> UserInDB:
+    new_user = UserCreate(email="serena@williams.io", username="serenawilliams", password="tennistwins",)
+
+    user_repo = UsersRepository(db)
+
+    existing_user = await user_repo.get_user_by_email(email=new_user.email)
+    if existing_user:
+        return existing_user
+
+    return await user_repo.register_new_user(new_user=new_user)
+
+
+# Make requests in our tests
+@pytest.fixture
+async def client(app: FastAPI) -> AsyncClient:
+    async with LifespanManager(app):
+        async with AsyncClient(
+            app=app, base_url="http://testserver", headers={"Content-Type": "application/json"}
+        ) as client:
+            yield client
 
 
 @pytest.fixture
@@ -98,30 +113,3 @@ def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
     }
 
     return client
-
-
-@pytest.fixture
-async def test_user2(db: Database) -> UserInDB:
-    new_user = UserCreate(
-        email="serena@williams.io",
-        username="serenawilliams",
-        password="tennistwins",
-    )
-
-    user_repo = UsersRepository(db)
-
-    existing_user = await user_repo.get_user_by_email(email=new_user.email)
-    if existing_user:
-        return existing_user
-
-    return await user_repo.register_new_user(new_user=new_user)
-
-
-@pytest.fixture
-async def test_cleaning(db: Database, test_user: UserInDB) -> CleaningInDB:
-    cleaning_repo = CleaningsRepository(db)
-    new_cleaning = CleaningCreate(
-        name="fake cleaning name", description="fake cleaning description", price=9.99, cleaning_type="spot_clean"
-    )
-
-    return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning, requesting_user=test_user)

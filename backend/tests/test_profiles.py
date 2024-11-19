@@ -27,6 +27,8 @@ class TestProfilesRoutes:
         res = await client.put(app.url_path_for("profiles:update-own-profile"), json={"profile_update": {}})
         assert res.status_code != status.HTTP_404_NOT_FOUND
 
+
+class TestProfileCreate:
     async def test_profile_created_for_new_users(self, app: FastAPI, client: AsyncClient, db: Database) -> None:
         profiles_repo = ProfilesRepository(db)
 
@@ -40,12 +42,9 @@ class TestProfilesRoutes:
         assert isinstance(user_profile, ProfileInDB)
 
 
-# ...other code
-
-
 class TestProfileView:
     async def test_authenticated_user_can_view_other_users_profile(
-            self, app: FastAPI, authorized_client: AsyncClient, test_user: UserInDB, test_user2: UserInDB
+        self, app: FastAPI, authorized_client: AsyncClient, test_user: UserInDB, test_user2: UserInDB
     ) -> None:
         res = await authorized_client.get(
             app.url_path_for("profiles:get-profile-by-username", username=test_user2.username)
@@ -55,15 +54,13 @@ class TestProfileView:
         assert profile.username == test_user2.username
 
     async def test_unregistered_users_cannot_access_other_users_profile(
-            self, app: FastAPI, client: AsyncClient, test_user2: UserInDB
+        self, app: FastAPI, client: AsyncClient, test_user2: UserInDB
     ) -> None:
-        res = await client.get(
-            app.url_path_for("profiles:get-profile-by-username", username=test_user2.username)
-        )
+        res = await client.get(app.url_path_for("profiles:get-profile-by-username", username=test_user2.username))
         assert res.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_no_profile_is_returned_when_username_matches_no_user(
-            self, app: FastAPI, authorized_client: AsyncClient
+        self, app: FastAPI, authorized_client: AsyncClient
     ) -> None:
         res = await authorized_client.get(
             app.url_path_for("profiles:get-profile-by-username", username="username_doesnt_match")
@@ -75,24 +72,18 @@ class TestProfileManagement:
     @pytest.mark.parametrize(
         "attr, value",
         (
-                ("full_name", "Lebron James"),
-                ("phone_number", "555-333-1000"),
-                ("bio", "This is a test bio"),
-                ("image", "http://testimages.com/testimage"),
+            ("full_name", "Lebron James"),
+            ("phone_number", "555-333-1000"),
+            ("bio", "This is a test bio"),
+            ("image", "http://testimages.com/testimage"),
         ),
     )
     async def test_user_can_update_own_profile(
-            self,
-            app: FastAPI,
-            authorized_client: AsyncClient,
-            test_user: UserInDB,
-            attr: str,
-            value: str,
+        self, app: FastAPI, authorized_client: AsyncClient, test_user: UserInDB, attr: str, value: str,
     ) -> None:
         assert getattr(test_user.profile, attr) != value
         res = await authorized_client.put(
-            app.url_path_for("profiles:update-own-profile"),
-            json={"profile_update": {attr: value}},
+            app.url_path_for("profiles:update-own-profile"), json={"profile_update": {attr: value}},
         )
         assert res.status_code == status.HTTP_200_OK
         profile = ProfilePublic(**res.json())
@@ -100,24 +91,18 @@ class TestProfileManagement:
 
     @pytest.mark.parametrize(
         "attr, value, status_code",
-        (
-                ("full_name", [], 422),
-                ("bio", {}, 422),
-                ("image", "./image-string.png", 422),
-                ("image", 5, 422),
-        ),
+        (("full_name", [], 422), ("bio", {}, 422), ("image", "./image-string.png", 422), ("image", 5, 422)),
     )
     async def test_user_recieves_error_for_invalid_update_params(
-            self,
-            app: FastAPI,
-            authorized_client: AsyncClient,
-            test_user: UserInDB,
-            attr: str,
-            value: str,
-            status_code: int,
+        self,
+        app: FastAPI,
+        authorized_client: AsyncClient,
+        test_user: UserInDB,
+        attr: str,
+        value: str,
+        status_code: int,
     ) -> None:
         res = await authorized_client.put(
-            app.url_path_for("profiles:update-own-profile"),
-            json={"profile_update": {attr: value}},
+            app.url_path_for("profiles:update-own-profile"), json={"profile_update": {attr: value}},
         )
         assert res.status_code == status_code

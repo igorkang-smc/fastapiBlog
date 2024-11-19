@@ -1,10 +1,4 @@
 from fastapi import Depends, APIRouter, HTTPException, Path, Body
-
-from app.api.dependencies.database import get_repository
-from app.models.token import AccessToken
-from app.services import auth_service
-from app.db.repositories.users import UsersRepository
-
 from starlette.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
@@ -16,27 +10,28 @@ from starlette.status import (
 
 from fastapi.security import OAuth2PasswordRequestForm
 
+from app.api.dependencies.database import get_repository
 from app.api.dependencies.auth import get_current_active_user
 from app.models.user import UserCreate, UserUpdate, UserInDB, UserPublic
+
+from app.db.repositories.users import UsersRepository
+
+
+from app.models.token import AccessToken
+from app.services import auth_service
+
 
 router = APIRouter()
 
 
-@router.post(
-    "/",
-    response_model=UserPublic,
-    name="users:register-new-user",
-    status_code=HTTP_201_CREATED,
-)
+@router.post("/", response_model=UserPublic, name="users:register-new-user", status_code=HTTP_201_CREATED)
 async def register_new_user(
-        new_user: UserCreate = Body(..., embed=True),
-        user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
+    new_user: UserCreate = Body(..., embed=True), user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
 ) -> UserPublic:
     created_user = await user_repo.register_new_user(new_user=new_user)
 
     access_token = AccessToken(
-        access_token=auth_service.create_access_token_for_user(user=created_user),
-        token_type="bearer",
+        access_token=auth_service.create_access_token_for_user(user=created_user), token_type="bearer"
     )
 
     return created_user.copy(update={"access_token": access_token})
@@ -44,8 +39,8 @@ async def register_new_user(
 
 @router.post("/login/token/", response_model=AccessToken, name="users:login-email-and-password")
 async def user_login_with_email_and_password(
-        user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
-        form_data: OAuth2PasswordRequestForm = Depends(OAuth2PasswordRequestForm),
+    user_repo: UsersRepository = Depends(get_repository(UsersRepository)),
+    form_data: OAuth2PasswordRequestForm = Depends(OAuth2PasswordRequestForm),
 ) -> AccessToken:
     user = await user_repo.authenticate_user(email=form_data.username, password=form_data.password)
 

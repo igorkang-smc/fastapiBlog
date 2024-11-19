@@ -10,6 +10,7 @@ from app.models.profile import ProfileCreate, ProfilePublic
 from app.models.user import UserCreate, UserUpdate, UserInDB, UserPublic
 from app.services import auth_service
 
+
 GET_USER_BY_EMAIL_QUERY = """
     SELECT id, username, email, email_verified, password, salt, is_active, is_superuser, created_at, updated_at
     FROM users
@@ -36,10 +37,7 @@ class UsersRepository(BaseRepository):
         self.profiles_repo = ProfilesRepository(db)
 
     async def get_user_by_email(self, *, email: EmailStr, populate: bool = True) -> UserInDB:
-        user_record = await self.db.fetch_one(
-            query=GET_USER_BY_EMAIL_QUERY,
-            values={"email": email},
-        )
+        user_record = await self.db.fetch_one(query=GET_USER_BY_EMAIL_QUERY, values={"email": email})
 
         if user_record:
             user = UserInDB(**user_record)
@@ -50,10 +48,7 @@ class UsersRepository(BaseRepository):
             return user
 
     async def get_user_by_username(self, *, username: str, populate: bool = True) -> UserInDB:
-        user_record = await self.db.fetch_one(
-            query=GET_USER_BY_USERNAME_QUERY,
-            values={"username": username},
-        )
+        user_record = await self.db.fetch_one(query=GET_USER_BY_USERNAME_QUERY, values={"username": username})
 
         if user_record:
             user = UserInDB(**user_record)
@@ -76,19 +71,12 @@ class UsersRepository(BaseRepository):
                 detail="That username is already taken. Please try another one.",
             )
 
-        user_password_update = self.auth_service.create_salt_and_hashed_password(
-            plaintext_password=new_user.password,
-        )
+        user_password_update = self.auth_service.create_salt_and_hashed_password(plaintext_password=new_user.password)
         new_user_params = new_user.copy(update=user_password_update.dict())
-        created_user = await self.db.fetch_one(
-            query=REGISTER_NEW_USER_QUERY,
-            values=new_user_params.dict(),
-        )
+        created_user = await self.db.fetch_one(query=REGISTER_NEW_USER_QUERY, values=new_user_params.dict())
 
         # create profile for new user
-        await self.profiles_repo.create_profile_for_user(
-            profile_create=ProfileCreate(user_id=created_user["id"]),
-        )
+        await self.profiles_repo.create_profile_for_user(profile_create=ProfileCreate(user_id=created_user["id"]))
 
         return await self.populate_user(user=UserInDB(**created_user))
 
@@ -98,9 +86,7 @@ class UsersRepository(BaseRepository):
         if not user:
             return None
 
-        if not self.auth_service.verify_password(
-                password=password, salt=user.salt, hashed_pw=user.password
-        ):
+        if not self.auth_service.verify_password(password=password, salt=user.salt, hashed_pw=user.password):
             return None
 
         return user
@@ -113,4 +99,3 @@ class UsersRepository(BaseRepository):
             # fetch the user's profile from the profiles repo
             profile=await self.profiles_repo.get_profile_by_user_id(user_id=user.id)
         )
-

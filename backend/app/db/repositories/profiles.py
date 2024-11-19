@@ -2,6 +2,7 @@ from app.db.repositories.base import BaseRepository
 from app.models.profile import ProfileCreate, ProfileUpdate, ProfileInDB
 from app.models.user import UserInDB
 
+
 CREATE_PROFILE_FOR_USER_QUERY = """
     INSERT INTO profiles (full_name, phone_number, bio, image, user_id)
     VALUES (:full_name, :phone_number, :bio, :image, :user_id)
@@ -57,28 +58,18 @@ class ProfilesRepository(BaseRepository):
         return ProfileInDB(**profile_record)
 
     async def get_profile_by_username(self, *, username: str) -> ProfileInDB:
-        profile_record = await self.db.fetch_one(
-            query=GET_PROFILE_BY_USERNAME_QUERY,
-            values={"username": username},
-        )
+        profile_record = await self.db.fetch_one(query=GET_PROFILE_BY_USERNAME_QUERY, values={"username": username})
 
         if profile_record:
             return ProfileInDB(**profile_record)
 
-    async def update_profile(
-            self,
-            *,
-            profile_update: ProfileUpdate,
-            requesting_user: UserInDB,
-    ) -> ProfileInDB:
+    async def update_profile(self, *, profile_update: ProfileUpdate, requesting_user: UserInDB) -> ProfileInDB:
         profile = await self.get_profile_by_user_id(user_id=requesting_user.id)
         update_params = profile.copy(update=profile_update.dict(exclude_unset=True))
 
         updated_profile = await self.db.fetch_one(
             query=UPDATE_PROFILE_QUERY,
-            values=update_params.dict(
-                exclude={"id", "created_at", "updated_at", "username", "email"},
-            ),
+            values=update_params.dict(exclude={"id", "created_at", "updated_at", "username", "email"}),
         )
 
         return ProfileInDB(**updated_profile)

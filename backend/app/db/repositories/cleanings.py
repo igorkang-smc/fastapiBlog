@@ -27,9 +27,9 @@ LIST_ALL_USER_CLEANINGS_QUERY = """
 
 UPDATE_CLEANING_BY_ID_QUERY = """
     UPDATE cleanings
-    SET name          = :name,
-        description   = :description,
-        price         = :price,
+    SET name         = :name,
+        description  = :description,
+        price        = :price,
         cleaning_type = :cleaning_type
     WHERE id = :id
     RETURNING id, name, description, price, cleaning_type, owner, created_at, updated_at;
@@ -47,15 +47,9 @@ class CleaningsRepository(BaseRepository):
     All database actions associated with the Cleaning resource
     """
 
-    async def create_cleaning(
-            self,
-            *,
-            new_cleaning: CleaningCreate,
-            requesting_user: UserInDB,
-    ) -> CleaningInDB:
+    async def create_cleaning(self, *, new_cleaning: CleaningCreate, requesting_user: UserInDB) -> CleaningInDB:
         cleaning = await self.db.fetch_one(
-            query=CREATE_CLEANING_QUERY,
-            values={**new_cleaning.dict(), "owner": requesting_user.id},
+            query=CREATE_CLEANING_QUERY, values={**new_cleaning.dict(), "owner": requesting_user.id}
         )
         return CleaningInDB(**cleaning)
 
@@ -68,23 +62,16 @@ class CleaningsRepository(BaseRepository):
 
     async def list_all_user_cleanings(self, requesting_user: UserInDB) -> List[CleaningInDB]:
         cleaning_records = await self.db.fetch_all(
-            query=LIST_ALL_USER_CLEANINGS_QUERY,
-            values={"owner": requesting_user.id},
+            query=LIST_ALL_USER_CLEANINGS_QUERY, values={"owner": requesting_user.id}
         )
 
         return [CleaningInDB(**l) for l in cleaning_records]
 
-    async def update_cleaning(
-            self,
-            *,
-            cleaning: CleaningInDB,
-            cleaning_update: CleaningUpdate,
-    ) -> CleaningInDB:
+    async def update_cleaning(self, *, cleaning: CleaningInDB, cleaning_update: CleaningUpdate) -> CleaningInDB:
         cleaning_update_params = cleaning.copy(update=cleaning_update.dict(exclude_unset=True))
         if cleaning_update_params.cleaning_type is None:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid cleaning type. Cannot be None.",
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid cleaning type. Cannot be None."
             )
 
         updated_cleaning = await self.db.fetch_one(
@@ -95,3 +82,4 @@ class CleaningsRepository(BaseRepository):
 
     async def delete_cleaning_by_id(self, *, cleaning: CleaningInDB) -> int:
         return await self.db.execute(query=DELETE_CLEANING_BY_ID_QUERY, values={"id": cleaning.id})
+

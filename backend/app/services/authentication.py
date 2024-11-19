@@ -1,27 +1,24 @@
+from typing import Optional, Type
+
 import jwt
 import bcrypt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
+from fastapi import HTTPException, status
+from pydantic import ValidationError
+
+
 from app.core.config import SECRET_KEY, JWT_ALGORITHM, JWT_AUDIENCE, JWT_TOKEN_PREFIX, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.models.token import JWTMeta, JWTCreds, JWTPayload
 from app.models.user import UserPasswordUpdate, UserInDB
-
-from app.models.user import UserPasswordUpdate
-
-from typing import Optional, Type
 from app.models.user import UserBase, UserPasswordUpdate
 
-from fastapi import HTTPException, status
-from pydantic import ValidationError
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthException(BaseException):
-    """
-    Custom auth exception that can be modified later on.
-    """
     pass
 
 
@@ -42,12 +39,12 @@ class AuthService:
         return pwd_context.verify(password + salt, hashed_pw)
 
     def create_access_token_for_user(
-            self,
-            *,
-            user: Type[UserBase],
-            secret_key: str = str(SECRET_KEY),
-            audience: str = JWT_AUDIENCE,
-            expires_in: int = ACCESS_TOKEN_EXPIRE_MINUTES,
+        self,
+        *,
+        user: Type[UserBase],
+        secret_key: str = str(SECRET_KEY),
+        audience: str = JWT_AUDIENCE,
+        expires_in: int = ACCESS_TOKEN_EXPIRE_MINUTES,
     ) -> str:
         if not user or not isinstance(user, UserBase):
             return None
@@ -58,12 +55,7 @@ class AuthService:
             exp=datetime.timestamp(datetime.utcnow() + timedelta(minutes=expires_in)),
         )
         jwt_creds = JWTCreds(sub=user.email, username=user.username)
-        token_payload = JWTPayload(
-            **jwt_meta.dict(),
-            **jwt_creds.dict(),
-        )
-        # NOTE - previous versions of pyjwt ("<2.0") returned the token as bytes insted of a string.
-        # That is no longer the case and the `.decode("utf-8")` has been removed.
+        token_payload = JWTPayload(**jwt_meta.dict(), **jwt_creds.dict(),)
         access_token = jwt.encode(token_payload.dict(), secret_key, algorithm=JWT_ALGORITHM)
 
         return access_token
@@ -78,5 +70,4 @@ class AuthService:
                 detail="Could not validate token credentials.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-
         return payload.username
